@@ -18,6 +18,7 @@ import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { initializeCapacitorPush } from './utils/notifications';
 import { analytics } from './utils/analytics';
+import { requestAllPermissions } from './utils/permissions';
 
 const OfflineBanner = ({ isSupabaseReachable }: { isSupabaseReachable: boolean }) => (!isSupabaseReachable) ? (
   <div className="bg-red-600 text-white text-[10px] sm:text-xs font-bold px-4 py-2 text-center flex justify-center items-center sticky top-0 z-[100] shadow-lg animate-in slide-in-from-top duration-300">
@@ -181,6 +182,8 @@ function App() {
 
     // Deep link handling for Capacitor (Supabase OAuth) - sécurisé et réservé aux APKs natives
     let appOpenListener: any = null;
+    let backButtonListener: any = null;
+
     if (Capacitor.isNativePlatform()) {
       try {
         CapApp.addListener('appUrlOpen', async (data: any) => {
@@ -189,8 +192,18 @@ function App() {
         }).then(listener => {
           appOpenListener = listener;
         });
+
+        CapApp.addListener('backButton', (data) => {
+          if (!data.canGoBack) {
+            CapApp.exitApp();
+          } else {
+            window.history.back();
+          }
+        }).then(listener => {
+          backButtonListener = listener;
+        });
       } catch (err) {
-        console.error("❌ [App] Erreur lors de l'initialisation du listener CapApp appUrlOpen:", err);
+        console.error("❌ [App] Erreur lors de l'initialisation des listeners Capacitor:", err);
       }
     }
 
@@ -202,6 +215,13 @@ function App() {
           appOpenListener.remove();
         } catch (removeErr) {
           console.error("❌ Erreur retrait listener App:", removeErr);
+        }
+      }
+      if (backButtonListener && typeof backButtonListener.remove === 'function') {
+        try {
+          backButtonListener.remove();
+        } catch (removeErr) {
+          console.error("❌ Erreur retrait listener BackButton:", removeErr);
         }
       }
     };
@@ -552,6 +572,12 @@ function App() {
     });
 
     initSession();
+
+    // Request native permissions on app start
+    if (Capacitor.isNativePlatform()) {
+      requestAllPermissions();
+    }
+
     return () => subscription.unsubscribe();
   }, []);
 
