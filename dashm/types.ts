@@ -43,6 +43,7 @@ export interface RestaurantPaymentConfig {
 export interface Restaurant {
   id: string;
   ownerId: string; // Lien avec le compte entreprise
+  owner_id?: string;
   type: BusinessType;
   name: string;
   description: string;
@@ -53,24 +54,32 @@ export interface Restaurant {
   exchangeRate?: number; // Taux de change (USD -> CDF) spécifique à l'établissement
   displayCurrencyMode?: 'dual' | 'usd' | 'cdf'; // Comment afficher le prix (Duo, Uniquement USD, Uniquement CDF)
   isOpen: boolean;
+  is_open?: boolean;
   isOnline?: boolean;
+  isActive?: boolean;
+  is_active?: boolean;
   rating: number; // 1-5
   reviewCount: number;
   preparationTime: number; // in minutes
   estimatedDeliveryTime: number; // in minutes (Temps moyen de livraison)
   deliveryAvailable: boolean;
   coverImage: string;
+  cover_image?: string;
   phoneNumber?: string; // Ajout pour l'appel
+  phone_number?: string;
   menu: MenuItem[];
   promotions?: Promotion[]; // Stories actives
   paymentConfig?: RestaurantPaymentConfig;
   isVerified?: boolean; // Badge de vérification
   verificationRequested?: boolean; // Demande de vérification envoyée par l'admin
   subscriptionTier?: 'free' | 'basic' | 'premium' | 'enterprise'; // Niveau d'abonnement
-  subscriptionStatus?: 'active' | 'past_due' | 'canceled' | 'incomplete';
+  subscriptionStatus?: 'active' | 'past_due' | 'canceled' | 'incomplete' | 'expired';
   subscriptionEndDate?: string;
   createdAt?: string; // Date de création du compte
   settings?: SecuritySettings;
+  deliveryRadius?: number;
+  deliveryFee?: number;
+  staff?: any[];
   // Verification fields
   verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
   verificationDocs?: {
@@ -89,6 +98,7 @@ export interface CartItem extends MenuItem {
   restaurantId: string;
   restaurantName: string;
   isUrgent?: boolean;
+  fulfillmentMode?: 'delivery' | 'pickup';
   paymentMethod?: PaymentMethod;
   paymentNetwork?: MobileMoneyNetwork;
   paymentStatus?: 'pending' | 'paid' | 'failed';
@@ -120,27 +130,35 @@ export interface User {
   role: UserRole;
   city: string; // Ville de résidence
   phoneNumber?: string; // Ajout pour l'appel
+  full_name?: string;
+  last_seen?: string;
+  lastSeen?: string;
   businessId?: string; // Si c'est un compte business ou staff
   deliveryApplicationStatus?: 'none' | 'pending' | 'approved' | 'rejected'; // Statut de la demande pour devenir livreur
-  staffRole?: 'admin' | 'manager' | 'cook' | 'delivery';
+  staffRole?: 'admin' | 'manager' | 'cook' | 'delivery' | 'manager:menu' | 'manager:orders' | 'manager:marketing' | 'manager:stats' | 'manager:all';
   settings?: SecuritySettings;
+  preferences?: any;
   avatarUrl?: string; // URL de la photo de profil
+  avatar_url?: string;
   deliveryInfo?: {
     vehicleType: 'moto' | 'velo' | 'voiture' | 'pieton';
     isAvailable: boolean;
     bio?: string;
     rating?: number;
     completedOrders?: number;
+    address?: string;
   };
+  delivery_info?: any;
 }
 
 // Order Types
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'completed' | 'cancelled';
-export type PaymentMethod = 'cash' | 'mobile_money' | 'money_fusion';
+export type PaymentMethod = 'cash' | 'mobile_money' | 'money_fusion' | 'stripe';
 
 export interface Order {
   id: string;
   userId: string;
+  user_id?: string;
   restaurantId: string;
   status: OrderStatus;
   paymentMethod: PaymentMethod;
@@ -157,6 +175,12 @@ export interface Order {
     lng: number;
     address: string;
   };
+  delivery_location?: {
+    lat: number;
+    lng: number;
+    address: string;
+  };
+  delivery_instructions?: string;
   proof_url?: string;
   delivery_person_id?: string;
   delivery_acceptance_status?: 'pending' | 'accepted' | 'rejected';
@@ -169,6 +193,9 @@ export interface Order {
   delivery_person?: {
     full_name: string;
     phone_number?: string;
+    avatar_url?: string;
+    last_seen?: string;
+    delivery_info?: any;
   };
   // Optional joined fields for display
   restaurant?: {
@@ -177,11 +204,19 @@ export interface Order {
     latitude?: number;
     longitude?: number;
     owner_id?: string;
+    ownerId?: string;
+    currency?: string;
+    displayCurrencyMode?: string;
   };
   customer?: {
     full_name: string;
     phone_number?: string;
+    email?: string;
+    avatar_url?: string;
+    last_seen?: string;
+    delivery_info?: any;
   };
+  customerName?: string;
 }
 
 // Chat Types
@@ -201,15 +236,18 @@ export type Language = 'fr' | 'en' | 'ln'; // Français, Anglais, Lingala
 export type AppFont = 'inter' | 'roboto' | 'opensans' | 'lato' | 'montserrat' | 'poppins' | 'quicksand' | 'playfair' | 'facebook';
 
 export interface SecuritySettings {
-  notifPush: boolean;
-  notifEmail: boolean;
-  notifSms: boolean;
-  twoFactorEnabled: boolean;
-  appLockEnabled: boolean;
+  notifPush?: boolean;
+  notifEmail?: boolean;
+  notifSms?: boolean;
+  twoFactorEnabled?: boolean;
+  appLockEnabled?: boolean;
   appLockPin?: string;
-  biometricsEnabled: boolean;
+  orderDeletionPassword?: string;
+  biometricsEnabled?: boolean;
   privacyProfile?: 'public' | 'private';
   privacyStories?: 'everyone' | 'followers';
+  hours?: any;
+  isOnline?: boolean;
 }
 
 export interface StaffMember {
