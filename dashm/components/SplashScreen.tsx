@@ -13,10 +13,8 @@ export const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
     return () => clearTimeout(timer);
   }, [onFinish]);
 
-  if (!isVisible) return null;
-
   return (
-    <div className={`fixed inset-0 z-[100] flex items-center justify-center bg-brand-600 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+    <div className={`fixed inset-0 z-[100] flex items-center justify-center bg-brand-600 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'} ${!isVisible ? 'pointer-events-none' : ''}`}>
       <div className="relative w-full h-full">
         <img 
             src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto=format&fit=crop" 

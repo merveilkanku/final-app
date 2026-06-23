@@ -18,6 +18,12 @@ if (typeof window !== 'undefined') {
       if (isNative) {
         const backendUrl = 'https://ais-pre-vhkhcvkc54fgkbq75rumca-150789858029.europe-west2.run.app';
         
+        // Ensure supabase calls are NOT redirected to the custom backend
+        const inputStr = typeof input === 'string' ? input : (input instanceof URL ? input.toString() : input.url);
+        if (inputStr.includes('supabase.co')) {
+           return originalFetch(input, init);
+        }
+
         if (typeof input === 'string' && input.startsWith('/api')) {
           console.log(`🌐 [Native API Redirect] Intercepting fetch: ${input} -> ${backendUrl}${input}`);
           return originalFetch(`${backendUrl}${input}`, init);

@@ -1183,28 +1183,23 @@ function App() {
     }
   };
 
-  if (showSplash && !isRecoveryMode) {
-    return <SplashScreen onFinish={() => setShowSplash(false)} />;
-  }
+  // Unified loader logic to prevent white screen
+  const isCurrentlyLoading = (loading || isAppInitializing) && !currentUser && !isRecoveryMode;
 
-  if (loading && !currentUser && !isRecoveryMode) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-black p-6">
-        <div className="relative mb-8">
-            <div className="w-20 h-20 border-4 border-brand-100 dark:border-brand-900/30 rounded-full animate-pulse"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-12 h-12 border-4 border-brand-600 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-            <div className="absolute -top-2 -right-2 bg-brand-500 text-white p-1.5 rounded-full shadow-lg">
-                <Zap size={14} className="animate-pulse" />
-            </div>
-        </div>
-        
-        <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-2">Chargement...</h2>
-        <p className="text-gray-500 dark:text-gray-400 text-sm font-medium animate-pulse">Initialisation de votre session sécurisée</p>
-      </div>
-    );
-  }
+  // Defensive watchdog for Android APK to avoid persistent white screen if state gets stuck
+  useEffect(() => {
+    if (isCurrentlyLoading && Capacitor.isNativePlatform()) {
+      const androidWatchdog = setTimeout(() => {
+        if (isCurrentlyLoading && !currentUser) {
+           console.warn("🛡️ [Android Watchdog] Force dismissing loader after 5s hang.");
+           setIsAppInitializing(false);
+           setLoading(false);
+           setShowSplash(false);
+        }
+      }, 5000);
+      return () => clearTimeout(androidWatchdog);
+    }
+  }, [isCurrentlyLoading, currentUser]);
 
   const handleManualLogin = (user: User) => {
     setCurrentUser(user);
@@ -1316,23 +1311,30 @@ function App() {
 
     // 1. Loading / Initializing State
     // Si on est encore en train d'initialiser ou si un chargement critique est en cours sans utilisateur résolu, on bloque l'UI
-    if (isAppInitializing || (loading && !currentUser)) {
-      if (showSplash) {
-        return <SplashScreen onFinish={() => setShowSplash(false)} />;
-      }
+    if (isCurrentlyLoading) {
       return (
-        <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-gray-900 z-[100]">
-           <div className="flex flex-col items-center">
-             <div className="w-12 h-12 border-4 border-brand-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-             <p className="text-sm text-gray-500 animate-pulse font-medium">Initialisation de votre session...</p>
-           </div>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-black p-6">
+          <div className="relative mb-8">
+              <div className="w-20 h-20 border-4 border-brand-100 dark:border-brand-900/30 rounded-full animate-pulse"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 border-4 border-brand-600 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+              <div className="absolute -top-2 -right-2 bg-brand-500 text-white p-1.5 rounded-full shadow-lg">
+                  <Zap size={14} className="animate-pulse" />
+              </div>
+          </div>
+
+          <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-2">Chargement...</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm font-medium animate-pulse text-center">Initialisation de votre session sécurisée</p>
         </div>
       );
     }
 
     // 2. Not Logged In -> Show Auth or Guest View
-    if (!currentUser) {
-      if (showAuth) {
+    if (!currentUser || currentUser.role === 'guest') {
+      const isActuallyGuest = currentUser?.role === 'guest';
+
+      if (showAuth && !isActuallyGuest) {
         return (
           <>
             {!isSupabaseReachable && (
@@ -1356,7 +1358,7 @@ function App() {
       }
 
       // Guest View
-      const guestUser: User = {
+      const guestUser: User = isActuallyGuest ? currentUser : {
           id: 'guest',
           name: 'Invité',
           email: '',
@@ -1554,6 +1556,11 @@ function App() {
             className="min-h-screen"
           >
             {renderContent()}
+
+            {/* Show splash as an overlay so it can fade out smoothly over the loaded content */}
+            {showSplash && !isRecoveryMode && (
+              <SplashScreen onFinish={() => setShowSplash(false)} />
+            )}
           </motion.div>
         )}
       </AnimatePresence>
